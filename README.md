@@ -44,9 +44,24 @@ Ensure your application is in **debug mode**, it should be set to this already, 
 ##Exercises
 Each exercise is to be worked on by the attendee, for the first couple of exercises, pretty much all information and code is provided, but as we progress, less and less detail is provided, so you must fill out the blanks as we get more and more experienced working with Umbraco and Angular.
 
-###General tips and gotchas
-Working with the manifest requires an app restart
-Yes, we know, its frustrating and on the roadmap to be fixed, but every time you change a package.manifest file, you will need to restart the application by touching the web.config.
+###[Exercise 1: first property editor](Exercises/Exercise1.md)
 
-###During development the browser might need to have its cache cleared
-You can configure chrome to reset cache when devtools are open, or use the “clear cache” chrome extension, google “Clear cache chrome” and you should find it on google play
+###[Exercise 2: building a controller](Exercises/Exercise2.md)
+
+###[Exercise 3: adding a service](Exercises/Exercise3.md)
+
+###[Exercise 4: connecting editor and service](Exercises/Exercise4.md)
+
+###[Exercise 5: serverside components overview](Exercises/Exercise5.md)
+
+###[Exercise 6: creating ingredient editor](Exercises/Exercise6.md)
+
+###[Exercise 7: deleting ingredients dialog](Exercises/Exercise7.md)
+
+###[Exercise 8: adding configuration to a property editor](Exercises/Exercise8.md)
+
+###[Exercise 9: add some style](Exercises/Exercise9.md)
+
+###[Exercise 10: reuse an editor as a macro parameter editor](Exercises/Exercise10.md)
+
+###[Exercise 11: $watch and $watchCollection](Exercises/Exercise11.md)
