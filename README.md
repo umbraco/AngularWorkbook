@@ -1,8 +1,6 @@
-Angular Workbook
-================
+#Angular Workbook
 
-##Angular course implementing a Campari focused backend UI for frontend developers.
-
+###Angular course implementing a Campari focused backend UI for frontend developers.
 
 The goal of this workshop is to implement a complete drinks + ingredients handler in the backoffice. All the serverside components needed is included as code in app_code and all database modifications are already setup - it is however just adding a new simpel table and simple content to work with.
 
