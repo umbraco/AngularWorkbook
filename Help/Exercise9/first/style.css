@@ -1,0 +1,29 @@
+div.my-glass-editor img{
+	border-radius: 200px;
+	border: 1px solid #ccc;		
+}
+div.my-glass-editor .selected img{
+	box-shadow: 0 0 20px rgba(255, 0, 0, 1);
+	border: none;	
+}
+
+div.my-glass-editor a, div.my-glass-editor li {
+	border: none;
+	box-shadow: none;
+	background: none !important;
+}
+
+div.my-glass-editor a:hover{
+	box-shadow: none
+}
+
+div.my-glass-editor li {
+	padding: 10px;
+}
+
+div.my-glass-editor small{
+	display: block;
+	text-align: center;
+	padding: 20px;
+	color: #999;
+} 

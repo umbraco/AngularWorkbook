@@ -1,0 +1,30 @@
+﻿@inherits UmbracoTemplatePage
+@{
+    Layout = "umbLayout.cshtml";
+}
+<div class="about" id="about">
+	<div class="wrap">
+        
+        <img class="radius" src="@Umbraco.Media(CurrentPage.Picture).Url?width=250&height=250&mode=crop"/>
+
+        <h3>@Umbraco.Field("pageName")</h3>
+
+        <p>@CurrentPage.description</p>   
+        
+        <h4>How to prepare</h4>
+        @CurrentPage.HowToPrepare
+
+        <h4>Ingredients</h4>
+        <ul>
+            @foreach(var ingredient in CurrentPage.ingredients){
+                 <li> <strong>@ingredient.quantity</strong>  @ingredient.name</li>             
+            }
+         </ul>
+
+         <br/><br/>
+         
+        <h4>Glass</h4>
+        <img src="@CurrentPage.Glass?width=150&height=150&mode=crop"/>
+       	
+    </div>
+</div>

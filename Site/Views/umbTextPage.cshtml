@@ -1,0 +1,11 @@
+﻿@inherits UmbracoTemplatePage
+@{
+    Layout = "umbLayout.cshtml";
+}<!---------about------------->
+<div class="about" id="about">
+	<div class="wrap">
+		<h3>@Umbraco.Field("pageName")</h3>
+	    
+        @CurrentPage.BodyText	
+    </div>
+</div>

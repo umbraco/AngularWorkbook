@@ -1,0 +1,18 @@
+{
+	propertyEditors:[
+		{
+			name: "My editor",
+			alias: "my.editor",
+			isParameterEditor: true,
+			editor:{
+				view: "~/app_plugins/first/editor.html"
+			}	
+		}
+		],
+		javascript: [
+			"~/app_plugins/first/editor.controller.js"
+		],
+		css:[
+			"~/app_plugins/first/style.css"
+		]
+}

@@ -1,0 +1,17 @@
+{
+	propertyEditors:[
+		{
+			name: "My editor",
+			alias: "my.editor",
+			editor:{
+				view: "~/app_plugins/first/editor.html"
+			}	
+		}
+		],
+		javascript: [
+			"~/app_plugins/first/editor.controller.js"
+		],
+		css:[
+			"~/app_plugins/first/style.css"
+		]
+}

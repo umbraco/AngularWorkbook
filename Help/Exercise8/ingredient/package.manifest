@@ -1,0 +1,32 @@
+{
+	propertyEditors:[
+	{
+		name: "Ingredients editor",
+		alias: "my.ingredients.editor",
+		editor:{
+			view: "~/app_plugins/ingredient/editor.html",
+			valueType: "JSON"
+		},
+		prevalues: {
+		    fields:[
+		        {
+		           label: "Hide quantity field",
+		           description: "Disables adding an ingredient quantity",
+		           key: "hideQuantity",
+		           view: "boolean"
+		        }            
+		    ]
+		}
+	}
+	
+	],
+
+	javascript: [
+		"~/app_plugins/ingredient/editor.controller.js",
+		"~/app_plugins/ingredient/ingredient.resource.js",
+		"~/app_plugins/ingredient/backoffice/ingredientTree/edit.controller.js",
+		"~/app_plugins/ingredient/backoffice/ingredientTree/delete.controller.js"
+	]
+
+
+}

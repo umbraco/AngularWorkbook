@@ -1,0 +1,11 @@
+{
+	propertyEditors:[
+	{
+		name: "My editor",
+		alias: "my.editor",
+		editor:{
+			view: "~/app_plugins/first/editor.html"
+		}	
+	}
+	]
+}

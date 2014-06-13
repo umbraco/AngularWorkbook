@@ -1,0 +1,60 @@
+<div ng-controller="My.IngredientController">
+
+
+	{{model | json}}
+	<table class="table table-striped">
+			<thead>
+				<tr>
+					<th ng-if="model.config.hideQuantity !== '1'">
+						Quantity
+					</th>
+					<th>Ingredient</th>
+					<th>Remove</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="ingredient in model.value">
+
+					<td ng-if="model.config.hideQuantity !== '1'">
+						<input type="text" class="span3" ng-model="ingredient.quantity"/>
+					</td>
+
+					<td>
+						{{ingredient.name}}
+					</td>
+
+					<td>
+						<a href ng-click="remove($index)">
+							<i class="icon icon-delete red"></i> Remove
+						</a>
+					</td>
+				</tr>
+			</tbody>
+
+			<tfoot>
+				<tr>
+					<td colspan="3">
+							<div class="row">
+								<input type="text"
+									class="span4 clear-fix" 
+									ng-keyup="find($event, searchTerm)"
+									placeholder="Type to find..." 
+									ng-model="searchTerm" />
+							</div>
+
+							<div class="row" ng-if="ingredients">
+								<ul class="nav nav-tabs nav-stacked span4">
+									<li ng-repeat="ingredient in ingredients.data"> 
+										<a ng-click="select(ingredient)">
+											<i class="icon icon-cocktail blue"></i> {{ingredient.name}}
+										</a>
+									</li>
+								</ul>
+							</div>
+					</td>
+				</tr>
+			</tfoot>
+
+		</table>
+
+</div>

@@ -1,0 +1,51 @@
+<form novalidate name="contentForm" 
+      ng-controller="My.Ingredient.EditController" 
+      ng-submit="save()"
+      val-form-manager>
+    <umb-panel>
+        <umb-header>
+            <div class="span7">
+                <umb-content-name
+                    placeholder="@placeholders_entername"
+                    ng-model="ingredient.name"/>
+            </div>
+        </umb-header>
+        
+        <div class="umb-panel-body umb-scrollable row-fluid">
+            <div class="tab-content form-horizontal" style="padding-bottom: 90px">
+                <div class="umb-pane">
+
+
+                    <div class="umb-property">
+                            <div class="control-group umb-control-group">
+                                <div class="umb-el-wrap">
+                                    <label class="control-label">
+                                        Description
+                                        <small>Details about this ingredient</small>
+                                    </label>
+
+                                    <div class="controls controls-row">
+                                            <textarea 
+                                                ng-model="ingredient.description">
+                                            </textarea>
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+
+
+
+                    <div class="umb-tab-buttons" detect-fold>
+                        <div class="btn-group">
+                            <button type="submit" data-hotkey="ctrl+s" class="btn btn-success">
+                                <localize key="buttons_save">Save</localize>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </umb-panel>
+</form>
