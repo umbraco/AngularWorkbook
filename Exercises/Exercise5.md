@@ -1,7 +1,7 @@
 #Exercise 5: Managing an ingredients tree
-This is not really an exercise, but more a walkthrough on how the tree works and where it gets its data from. 
+This is not really an exercise, but more a walkthrough on how the tree works and where it gets its data from.
 
-All files for the tree is located in /app_code for easy inspection - if you would, you can also compile these files into a dll with visual studio, but for this workshop, its more approachable to have the class file as readable text. 
+All files for the tree are located in /app_code for easy inspection - if you want, you can also compile these files into a dll with visual studio, but for this workshop, its more approachable to have the class file as readable text. 
 
 ##Ingredient.cs
 Contains the schema for the ingredient class, it is annotated with the table it will store data in, as well as annotations that describe how the data from the database is converted to JSON and back again
@@ -18,4 +18,4 @@ Class for the ingredient tree, it is annotated with tree meta data, like which s
 
 It contains methods for providing tree items for the tree, and menu items for each item in the tree. By default the tree contains no information about which views to use with the tree items, since these are setup by convention to point at __/app_plugins/ingredient/backoffice/ingredientTree/__
 
-This means we can focus on adding the html into the /app_plugins/ingredient/ folder to wire up the dialogs and editors we need to for our custom tree.
+This means we can focus on adding the html into the /app_plugins/ingredient/ folder to wire up the dialogs and editors we need to for our custom tree.  The custom ingredients tree will be located under the Settings menu item - it's includedby Umbraco automatically when it finds a ____TreeController.cs file with the correct tree annotations . 
