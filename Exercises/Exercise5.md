@@ -18,4 +18,4 @@ Class for the ingredient tree, it is annotated with tree meta data, like which s
 
 It contains methods for providing tree items for the tree, and menu items for each item in the tree. By default the tree contains no information about which views to use with the tree items, since these are setup by convention to point at __/app_plugins/ingredient/backoffice/ingredientTree/__
 
-This means we can focus on adding the html into the /app_plugins/ingredient/ folder to wire up the dialogs and editors we need to for our custom tree.  The custom ingredients tree will be located under the Settings menu item - it's includedby Umbraco automatically when it finds a ____TreeController.cs file with the correct tree annotations . 
+This means we can focus on adding the html into the /app_plugins/ingredient/ folder to wire up the dialogs and editors we need to for our custom tree.  The custom ingredients tree will be located under the Settings menu item - it's included by Umbraco automatically when it finds a ____TreeController.cs file with the correct tree annotations . 
