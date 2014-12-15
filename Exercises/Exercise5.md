@@ -14,7 +14,9 @@ The controller is automatically wired up to be accessible at
 	/umbraco/Backoffice/Ingredient/IngredientApi/
 
 ##IngredientTreeController.cs
-Class for the ingredient tree, it is annotated with tree meta data, like which section to be used in, label and alias. 
+Class for the ingredient tree, it is annotated with tree meta data, that specifies the section (location of the tree), alias and label. 
+
+	[Tree("settings", "ingredientTree", "Ingredient")]
 
 It contains methods for providing tree items for the tree, and menu items for each item in the tree. By default the tree contains no information about which views to use with the tree items, since these are setup by convention to point at __/app_plugins/ingredient/backoffice/ingredientTree/__
 
