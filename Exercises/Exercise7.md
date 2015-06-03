@@ -7,21 +7,29 @@ Make sure everything works and then wire up the controller to call the ingredien
 
 To setup the ingredientResource, you need this: 
 
-	myService.delete = function(id){
-	   return $http.delete("Backoffice/Ingredient/IngredientApi/DeleteById?id="+id);
-	};
+```javascript
+myService.delete = function(id){
+   return $http.delete("Backoffice/Ingredient/IngredientApi/DeleteById?id="+id);
+};
+``` 
 
 Other then that, you are on your own, all in the name of learning by doing :)
 
 There are a couple of helpful services to control the tree and menus displayed, which are also listed in the controller in the start files:
 
 
-	navigationService.hideDialog();
+```javascript
+navigationService.hideDialog();
+```
 
 and 
 
-	treeService.removeNode($scope.currentNode);
+```javascript
+treeService.removeNode($scope.currentNode);
+```
 
 Also, by default, all dialogs have access to the current active tree node with 
 
-	$scope.currentNode
+```javascript
+$scope.currentNode
+```
