@@ -26,7 +26,7 @@ We need to tell our application to actually load this controller.js file on appl
 {
     propertyEditors:[
         {
-            …   
+        
         }
     ],
     javascript: [
@@ -55,15 +55,15 @@ $scope.glasses = [
     {
         name: "cocktail",
         image: "/images/glasses/cocktail.jpg"
-},
-{
+    },
+    {
         name: "shot",
         image: "/images/glasses/shot.jpg"
-},
-{
+    },
+    {
         name: "highball",
         image: "/images/glasses/highball.jpg"
-},
+    },
 ];
 ````
 
@@ -77,8 +77,8 @@ We will now bind the data from the glasses array to our html, switch over to the
     <li class="span3" ng-repeat="glass in glasses">
         <a href class="thumbnail">
             <img ng-src="{{glass.image}}" />
-<small>{{glass.name}}</small>
-</a>    
+            <small>{{glass.name}}</small>
+        </a>    
     </li>
 </ul>
 ```
