@@ -1,11 +1,11 @@
 #Exercise 2: Our first controller
-We continue to work with the first.html file and will now add a controller to our view to introduce some more logic to our editor. 
+We continue to work with the glass editor.html file and will now add a controller to our view to introduce some more logic to our editor. 
 
 ##The controller setup
-Add a new javascript file at __/app_plugins/first/editor.controller.js__ - open it, and add a basic controller declaration to it like so: 
+Add a new javascript file at __/app_plugins/glass/editor.controller.js__ - open it, and add a basic controller declaration to it like so: 
 
 ```javascript
-angular.module("umbraco").controller("My.EditorController", function(){
+angular.module("umbraco").controller("Glass.EditorController", function(){
     alert("Here I am");
 });
 ````
@@ -14,7 +14,7 @@ angular.module("umbraco").controller("My.EditorController", function(){
 We also need to tell the editor html view to actually load and use the controller we’ve setup, so modify the editors html to be like so: 
 
 ```html
-<div ng-controller="My.EditorController">
+<div ng-controller="Glas.EditorController">
     <input type="text" ng-model="model.value" />
 </div>
 ```
@@ -30,7 +30,7 @@ We need to tell our application to actually load this controller.js file on appl
         }
     ],
     javascript: [
-        "~/app_plugins/first/editor.controller.js"
+        "~/app_plugins/glass/editor.controller.js"
     ]
 }
 ```
@@ -41,7 +41,7 @@ Restart the application - you will now see an alert box when you reload the page
 Now lets work with some data in our scope. First of all, inject the $scope, by adding it to the controllers function like so:
 
 ```javascript
-angular.module("umbraco").controller("My.EditorController", function($scope){
+angular.module("umbraco").controller("Glass.EditorController", function($scope){
     alert("Here I am");
 });
 ```
