@@ -4,13 +4,15 @@ Remember that glass editor we made as the very first thing? - lets go back and r
 ##Edit the /app_plugins/first/package.manifest
 Just add a isParameterEditor value to the propertyEditor definition, and after a app restart, it will show up in the list of macro parameter editors.
 
-	propertyEditors:[
-		{
-			name: "My first editor",
-			alias: "My.First",
-			isParameterEditor: true,
-			editor:{
-				view: "~/app_plugins/first/editor.html"
-			}
+```json
+propertyEditors:[
+	{
+		name: "My first editor",
+		alias: "My.First",
+		isParameterEditor: true,
+		editor:{
+			view: "~/app_plugins/first/editor.html"
 		}
-	]
+	}
+]
+```
