@@ -1,14 +1,14 @@
 #Exercise 9: add some style
 One final detail, lets import some custom css to make the glass picker stand out a bit, copy /help/exercise9-start/style.css to /app_plugins/first/style.css, then register it in the /app_plugins/first/package.manifest file like so:
 
-	{
-		propertyEditors:[
-		...
-		],
-		css:[
-			"~/app_plugins/first/style.css"
-		]
-	}
+```json
+{
+	propertyEditors:[ ],
+	css:[
+		"~/app_plugins/first/style.css"
+	]
+}
+```
 
 The stylesheet targets a `<div>` with the class “my-glass-editor” so add that class to the `<div>` element wrapping the glass editor view.
 
