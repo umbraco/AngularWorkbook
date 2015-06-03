@@ -13,34 +13,40 @@ We need to configure the ingredient resource to retrieve existing ingredients fr
 
 We add two methods to ingredient.resource.js to do that:
 
-	myService.getById = function(id){
-		return $http.get("Backoffice/Ingredient/IngredientApi/GetById?id="+ id);
-	};
+```javascript
+myService.getById = function(id){
+	return $http.get("Backoffice/Ingredient/IngredientApi/GetById?id="+ id);
+};
 
-	myService.save = function(ingredient){
-		return $http.post("Backoffice/Ingredient/IngredientApi/PostSave", ingredient);
-	};
+myService.save = function(ingredient){
+	return $http.post("Backoffice/Ingredient/IngredientApi/PostSave", ingredient);
+};
+```
 
 Again, these simply call the serverside REST api, which are defined in the .cs files in app_code
 
 ##Make the edit controller save and retrive
 First the retrieve part, where we use $routeParams to determine the state of the editor:
 
-	if($routeParams.create){
-		$scope.ingredient = {};
-	}else{
-		ingredientResource.getById($routeParams.id).then(function(response){
-			$scope.ingredient = response.data;
-		});
-	}
+```javascript
+if($routeParams.create){
+	$scope.ingredient = {};
+}else{
+	ingredientResource.getById($routeParams.id).then(function(response){
+		$scope.ingredient = response.data;
+	});
+}
+```
 
 Then we add $scope.save to save the data: 
 
-	$scope.save = function(){
-		ingredientResource.save($scope.ingredient).then(function(response){
-			$scope.ingredient = response.data;
-			notificationsService.success("Ingredient saved!");
-		});
-	};
+```javascript
+$scope.save = function(){
+	ingredientResource.save($scope.ingredient).then(function(response){
+		$scope.ingredient = response.data;
+		notificationsService.success("Ingredient saved!");
+	});
+};
+```
 
 __Notice__, how we’ve introduced $routeParams and notificationsService to the controller, just by having them injected in the controller function - again a core angular concept: dependency injection.
