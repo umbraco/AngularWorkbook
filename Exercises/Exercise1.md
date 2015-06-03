@@ -6,8 +6,10 @@ Create a new folder at /app_plugins/first/, inside this folder, create a new fil
 
 This file is used to, among other things,register property editors. So we will add a bit of json to describe what we are adding:
 
-	{
-		propertyEditors:[
+```json
+{
+	propertyEditors:
+	[
 		{
 			name: "My editor",
 			alias: "my.editor",
@@ -15,16 +17,18 @@ This file is used to, among other things,register property editors. So we will a
 				view: "~/app_plugins/first/editor.html"
 			}	
 		}
-		]
-	}
-
+	]
+}
+```
 
 So we create a propertyEditors array, which we then add a single editor to. This editor has basic meta data like name, alias and most importantly, the path to the html that will show in the Ui when loaded. 
 
 ##Editing the view
 Let’s add that view, which is a .html file at `/app_plugins/first/editor.html`, then Open the editor.html file, and add nothing but:
 
-	<input type="text" ng-model="model.value" /> 
+```html
+<input type="text" ng-model="model.value" /> 
+```
 
 Now, lets restart the application, by opening the `web.config` and make an edit like a linebreak or space to “touch it”. Every time we change the manifest, we must make the application restart to pickup the changes. 
 
