@@ -9,67 +9,77 @@ Copy the “/app_plugins/first” folder and paste it as “/app_plugins/ingredi
 ##The manifest
 Open the “/app_plugins/ingredient/package.manifest” file and modify it so the previously named “first editor” is now called “ingredients editor” like so:
 
+```json
+{
+	propertyEditors:[
 	{
-		propertyEditors:[
-		{
 		name: "Ingredient editor",
-	alias: "my.ingredient.editor",
-	editor:{
-		view: "~/app_plugins/ingredient/editor.html",
-		valueType: "JSON"
-	}	
-		}
-	],
-	….
+		alias: "my.ingredient.editor",
+		editor:{
+			view: "~/app_plugins/ingredient/editor.html",
+			valueType: "JSON"
+		}	
 	}
+	]
+}
+```
 
 __Notice:__ we also added __“valueType”__ - this makes umbraco store data from the editor as json, and will serialize it when we later access it in the template.
 
 Also, we need to modify the javascript array so it includes 2 files, the ingredient.resource.js will be added in the next exercise
 
-	javascript: [
-		"~/app_plugins/ingredient/editor.controller.js",
-		"~/app_plugins/ingredient/ingredient.resource.js"
-	]
+```json
+javascript: [
+	"~/app_plugins/ingredient/editor.controller.js",
+	"~/app_plugins/ingredient/ingredient.resource.js"
+]
+```
 
 ##Create the service file
 Now create /app_plugins/ingredient/ingredient.resource.js and make a basic service registration like so: 
 
-	angular.module("umbraco.resources")
+```javascript
+angular.module("umbraco.resources")
 	.factory("ingredientResource", function($http){
 
 	var myService = {};	
 		return myService;
 	});
+```
 
 ##GetAll() method
 Now, lets make the ingredient service call our server for some data. We use $http which is included in Angular. 
 
-	myService.getAll = function(){
+```javascript
+myService.getAll = function(){
 	return $http.get("Backoffice/Ingredient/IngredientApi/getAll");
-	}; 
-
+}; 
+```
 
 This simply exposes our ajax call to the server as a simple API, which we could later change the actual implementation of, if we wanted to. 
 
 Modify the editor view and controller to list the ingredients
 Open /ingredient/editor.controller.js and inject the ingredientResource into the controller, by adding it to the controller function() like so: 
-	
-	angular.module("umbraco")
+
+```javascript	
+angular.module("umbraco")
 	.controller("My.IngredientController", 
-	function($scope, ingredientResource){
-				$scope.ingredients = ingredientResource.getAll();
-	});
+		function($scope, ingredientResource){
+			$scope.ingredients = ingredientResource.getAll();
+		});
+```
 
 also, as you can see we modify the name of the controller, Switch to the html view, and list out the ingredients as a list: 
 
-	<div ng-controller="My.IngredientController">
+```html
+<div ng-controller="My.IngredientController">
 	<ul>
 		<li ng-repeat="ingredient in ingredients.data">
 			{{ingredient.name}}
-	</li>
+		</li>
 	</ul>	
-	</div>
+</div>
+```
 
 __Hint__: to see all the data in ingredients, use `{{ingredients | json}}``
 
