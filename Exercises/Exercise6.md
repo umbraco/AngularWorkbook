@@ -1,7 +1,7 @@
 #Exercise 6: Ingredient editor
 If you click the tree root node, it will give you an error, saying it cannot find /app_plugins/ingredient/backoffice/IngredientTree/edit.html 
 
-It is a convention in Umbraco 7 that you use the same editor view for creation and editing, so an editing view should always support and initial empty state.
+It is a convention in Umbraco 7 that you use the same editor view for creation and editing, so an editing view should always support an initial empty state.
 
 ##View and controller setup
 To avoid spending too much time on typing html, copy /edit.html and edit.controller.html from the /help/exercise6-start/ folder and into your site - this will give us some basic html and a controller wired up
