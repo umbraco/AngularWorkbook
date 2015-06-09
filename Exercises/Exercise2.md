@@ -70,7 +70,7 @@ $scope.glasses = [
 The images/glass files have already been added to the web site.
 
 ##Ng-repeat
-We will now bind the data from the glasses array to our html, switch over to the “editor.html” view and replace the <input /> element with an un-ordered list like below:
+We will now bind the data from the glasses array to our html, switch over to the “editor.html” view and replace the `<input />` element with an un-ordered list like below:
 
 ```html
 <ul class="thumbnails">
