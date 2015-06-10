@@ -1,4 +1,4 @@
-/*! umbraco - v7.1.3 - 2014-05-17
+/*! umbraco
  * https://github.com/umbraco/umbraco-cms/
  * Copyright (c) 2014 Umbraco HQ;
  * Licensed MIT
@@ -425,11 +425,11 @@ angular.module('umbraco.services').factory("editorState", function() {
          */
         reset: function() {
             current = null;
-        }
+        },
 
         /**
          * @ngdoc function
-         * @name umbraco.services.angularHelper#current
+         * @name umbraco.services.angularHelper#getCurrent
          * @methodOf umbraco.services.editorState
          * @function
          *
@@ -442,7 +442,12 @@ angular.module('umbraco.services').factory("editorState", function() {
          * editorState.current can not be overwritten, you should only read values from it
          * since modifying individual properties should be handled by the property editors
          */
+        getCurrent: function() {
+            return current;
+        }
     };
+
+    //TODO: This shouldn't be removed! use getCurrent() method instead of a hacked readonly property which is confusing.
 
     //create a get/set property but don't allow setting
     Object.defineProperty(state, "current", {
@@ -716,10 +721,180 @@ angular.module('umbraco.services')
 * @description A helper service for most editors, some methods are specific to content/media/member model types but most are used by 
 * all editors to share logic and reduce the amount of replicated code among editors.
 **/
-function contentEditingHelper($location, $routeParams, notificationsService, serverValidationManager, dialogService, formHelper, appState) {
+function contentEditingHelper(fileManager, $q, $location, $routeParams, notificationsService, serverValidationManager, dialogService, formHelper, appState, keyboardService) {
 
     return {
         
+        /** Used by the content editor and mini content editor to perform saving operations */
+        contentEditorPerformSave: function (args) {
+            if (!angular.isObject(args)) {
+                throw "args must be an object";
+            }
+            if (!args.scope) {
+                throw "args.scope is not defined";
+            }
+            if (!args.content) {
+                throw "args.content is not defined";
+            }
+            if (!args.statusMessage) {
+                throw "args.statusMessage is not defined";
+            }
+            if (!args.saveMethod) {
+                throw "args.saveMethod is not defined";
+            }
+
+            var self = this;
+
+            var deferred = $q.defer();
+            
+            if (!args.scope.busy && formHelper.submitForm({ scope: args.scope, statusMessage: args.statusMessage })) {
+
+                args.scope.busy = true;
+
+                args.saveMethod(args.content, $routeParams.create, fileManager.getFiles())
+                    .then(function (data) {
+
+                        formHelper.resetForm({ scope: args.scope, notifications: data.notifications });
+
+                        self.handleSuccessfulSave({
+                            scope: args.scope,
+                            savedContent: data,
+                            rebindCallback: self.reBindChangedProperties(args.content, data)
+                        });
+
+                        args.scope.busy = false;
+                        deferred.resolve(data);
+
+                    }, function (err) {
+                        self.handleSaveError({
+                            redirectOnFailure: true,
+                            err: err,
+                            rebindCallback: self.reBindChangedProperties(args.content, err.data)
+                        });
+                        args.scope.busy = false;
+                        deferred.reject(err);
+                    });
+            }
+            else {
+                deferred.reject();
+            }
+
+            return deferred.promise;
+        },
+        
+        /** Returns the action button definitions based on what permissions the user has.
+        The content.allowedActions parameter contains a list of chars, each represents a button by permission so 
+        here we'll build the buttons according to the chars of the user. */
+        configureContentEditorButtons: function (args) {
+
+            if (!angular.isObject(args)) {
+                throw "args must be an object";
+            }
+            if (!args.content) {
+                throw "args.content is not defined";
+            }
+            if (!args.methods) {
+                throw "args.methods is not defined";
+            }
+            if (!args.methods.saveAndPublish || !args.methods.sendToPublish || !args.methods.save || !args.methods.unPublish) {
+                throw "args.methods does not contain all required defined methods";
+            }
+
+            var buttons = {
+                defaultButton: null,
+                subButtons: []
+            };
+
+            function createButtonDefinition(ch) {
+                switch (ch) {
+                    case "U":
+                        //publish action
+                        keyboardService.bind("ctrl+p", args.methods.saveAndPublish);
+
+                        return {
+                            letter: ch,
+                            labelKey: "buttons_saveAndPublish",
+                            handler: args.methods.saveAndPublish,
+                            hotKey: "ctrl+p"
+                        };
+                    case "H":
+                        //send to publish
+                        keyboardService.bind("ctrl+p", args.methods.sendToPublish);
+
+                        return {
+                            letter: ch,
+                            labelKey: "buttons_saveToPublish",
+                            handler: args.methods.sendToPublish,
+                            hotKey: "ctrl+p"
+                        };
+                    case "A":
+                        //save
+                        keyboardService.bind("ctrl+s", args.methods.save);
+                        return {
+                            letter: ch,
+                            labelKey: "buttons_save",
+                            handler: args.methods.save,
+                            hotKey: "ctrl+s"
+                        };
+                    case "Z":
+                        //unpublish
+                        keyboardService.bind("ctrl+u", args.methods.unPublish);
+
+                        return {
+                            letter: ch,
+                            labelKey: "content_unPublish",
+                            handler: args.methods.unPublish
+                        };
+                    default:
+                        return null; 
+                }
+            }
+
+            //reset
+            buttons.subButtons = [];
+
+            //This is the ideal button order but depends on circumstance, we'll use this array to create the button list
+            // Publish, SendToPublish, Save
+            var buttonOrder = ["U", "H", "A"];
+
+            //Create the first button (primary button)
+            //We cannot have the Save or SaveAndPublish buttons if they don't have create permissions when we are creating a new item.
+            if (!args.create || _.contains(args.content.allowedActions, "C")) {
+                for (var b in buttonOrder) {
+                    if (_.contains(args.content.allowedActions, buttonOrder[b])) {
+                        buttons.defaultButton = createButtonDefinition(buttonOrder[b]);
+                        break;
+                    }
+                }
+            }
+
+            //Now we need to make the drop down button list, this is also slightly tricky because:
+            //We cannot have any buttons if there's no default button above.
+            //We cannot have the unpublish button (Z) when there's no publish permission.    
+            //We cannot have the unpublish button (Z) when the item is not published.           
+            if (buttons.defaultButton) {
+
+                //get the last index of the button order
+                var lastIndex = _.indexOf(buttonOrder, buttons.defaultButton.letter);
+                //add the remaining
+                for (var i = lastIndex + 1; i < buttonOrder.length; i++) {
+                    if (_.contains(args.content.allowedActions, buttonOrder[i])) {
+                        buttons.subButtons.push(createButtonDefinition(buttonOrder[i]));
+                    }
+                }
+
+
+                //if we are not creating, then we should add unpublish too, 
+                // so long as it's already published and if the user has access to publish
+                if (!args.create) {
+                    if (args.content.publishDate && _.contains(args.content.allowedActions, "U")) {
+                        buttons.subButtons.push(createButtonDefinition("Z"));
+                    }
+                }
+            }
+
+            return buttons;
+        },
 
         /**
          * @ngdoc method
@@ -1245,9 +1420,47 @@ angular.module('umbraco.services')
     function removeAllDialogs(args) {
         for (var i = 0; i < dialogs.length; i++) {
             var dialog = dialogs[i];
-            dialog.close(args);
-            dialogs.splice(i, 1);
+
+            //very special flag which means that global events cannot close this dialog - currently only used on the login 
+            // dialog since it's special and cannot be closed without logging in.
+            if (!dialog.manualClose) {
+                dialog.close(args);
+            }
+            
         }
+    }
+
+    /** Internal method that closes the dialog properly and cleans up resources */
+    function closeDialog(dialog) {
+
+        if (dialog.element) {
+            dialog.element.modal('hide');
+
+            //this is not entirely enough since the damn webforms scriploader still complains
+            if (dialog.iframe) {
+                dialog.element.find("iframe").attr("src", "about:blank");
+                $timeout(function () {
+                    //we need to do more than just remove the element, this will not destroy the 
+                    // scope in angular 1.1x, in angular 1.2x this is taken care of but if we dont
+                    // take care of this ourselves we have memory leaks.
+                    dialog.element.remove();
+                    //SD: No idea why this is required but was there before - pretty sure it's not required
+                    $("#" + dialog.element.attr("id")).remove();
+                    dialog.scope.$destroy();
+                }, 1000);
+            } else {
+                //we need to do more than just remove the element, this will not destroy the 
+                // scope in angular 1.1x, in angular 1.2x this is taken care of but if we dont
+                // take care of this ourselves we have memory leaks.
+                dialog.element.remove();
+                //SD: No idea why this is required but was there before - pretty sure it's not required
+                $("#" + dialog.element.attr("id")).remove();
+                dialog.scope.$destroy();
+            }
+        }
+
+        //remove 'this' dialog from the dialogs array
+        dialogs = _.reject(dialogs, function (i) { return i === dialog; });
     }
 
     /** Internal method that handles opening all dialogs */
@@ -1263,13 +1476,19 @@ angular.module('umbraco.services')
             template: "views/common/notfound.html",
             callback: undefined,
             closeCallback: undefined,
-            element: undefined,
-            //this allows us to pass in data to the dialog if required which can be used to configure the dialog
-            //and re-use it for different purposes. It will set on to the $scope.dialogData if it is defined.
+            element: undefined,          
+            // It will set this value as a property on the dialog controller's scope as dialogData,
+            // used to pass in custom data to the dialog controller's $scope. Though this is near identical to 
+            // the dialogOptions property that is also set the the dialog controller's $scope object. 
+            // So there's basically 2 ways of doing the same thing which we're now stuck with and in fact
+            // dialogData has another specially attached property called .selection which gets used.
             dialogData: undefined
         };
 
         var dialog = angular.extend(defaults, options);
+        
+        //NOTE: People should NOT pass in a scope object that is legacy functoinality and causes problems. We will ALWAYS
+        // destroy the scope when the dialog is closed regardless if it is in use elsewhere which is why it shouldn't be done.
         var scope = options.scope || $rootScope.$new();
 
         //Modal dom obj and unique id
@@ -1302,28 +1521,7 @@ angular.module('umbraco.services')
                 dialog.closeCallback(data);
             }
 
-            if (dialog.element) {
-                dialog.element.modal('hide');
-
-                //this is not entirely enough since the damn
-                //webforms scriploader still complains
-                if (dialog.iframe) {
-                    dialog.element.find("iframe").attr("src", "about:blank");
-                    $timeout(function () {
-                        //we need to do more than just remove the element, this will not destroy the 
-                        // scope in angular 1.1x, in angular 1.2x this is taken care of but if we dont
-                        // take care of this ourselves we have memory leaks.
-                        dialog.element.remove();
-                        dialog.scope.$destroy();
-                    }, 1000);
-                } else {
-                    //we need to do more than just remove the element, this will not destroy the 
-                    // scope in angular 1.1x, in angular 1.2x this is taken care of but if we dont
-                    // take care of this ourselves we have memory leaks.
-                    dialog.element.remove();
-                    dialog.scope.$destroy();
-                }
-            }
+            closeDialog(dialog);
         };
 
         //if iframe is enabled, inject that instead of a template
@@ -1383,6 +1581,7 @@ angular.module('umbraco.services')
                     };
 
                     scope.swipeHide = function (e) {
+
                         if (appState.getGlobalState("touchDevice")) {
                             var selection = window.getSelection();
                             if (selection.type !== "Range") {
@@ -1391,15 +1590,9 @@ angular.module('umbraco.services')
                         }
                     };
 
+                    //NOTE: Same as 'close' without the callbacks
                     scope.hide = function () {
-                        dialog.element.modal('hide');
-
-                        dialog.element.remove();
-                        $("#" + dialog.element.attr("id")).remove();
-                        //we need to do more than just remove the element, this will not destroy the 
-                        // scope in angular 1.1x, in angular 1.2x this is taken care of but if we dont
-                        // take care of this ourselves we have memory leaks.
-                        dialog.scope.$destroy();
+                        closeDialog(dialog);
                     };
 
                     //basic events for submitting and closing
@@ -1408,21 +1601,26 @@ angular.module('umbraco.services')
                             dialog.callback(data);
                         }
 
-                        dialog.element.modal('hide');
-                        dialog.element.remove();
-                        $("#" + dialog.element.attr("id")).remove();
-                        //we need to do more than just remove the element, this will not destroy the 
-                        // scope in angular 1.1x, in angular 1.2x this is taken care of but if we dont
-                        // take care of this ourselves we have memory leaks.
-                        dialog.scope.$destroy();
+                        closeDialog(dialog);
                     };
 
                     scope.close = function (data) {
                         dialog.close(data);
                     };
-
+                    
+                    //NOTE: This can ONLY ever be used to show the dialog if dialog.show is false (autoshow). 
+                    // You CANNOT call show() after you call hide(). hide = close, they are the same thing and once
+                    // a dialog is closed it's resources are disposed of.
                     scope.show = function () {
-                        dialog.element.modal('show');
+                        if (dialog.manualClose === true) {
+                            //show and configure that the keyboard events are not enabled on this modal
+                            dialog.element.modal({ keyboard: false });
+                        }
+                        else {
+                            //just show normally
+                            dialog.element.modal('show');
+                        }
+                        
                     };
 
                     scope.select = function (item) {
@@ -1434,6 +1632,7 @@ angular.module('umbraco.services')
                         }
                     };
 
+                    //NOTE: Same as 'close' without the callbacks
                     scope.dismiss = scope.hide;
 
                     // Emit modal events
@@ -1448,12 +1647,13 @@ angular.module('umbraco.services')
                         $('input[autofocus]', dialog.element).first().trigger('focus');
                     });
 
+                    dialog.scope = scope;
+
                     //Autoshow 
                     if (dialog.show) {
-                        dialog.element.modal('show');
+                        scope.show();
                     }
-
-                    dialog.scope = scope;
+                    
                 });
 
             //Return the modal object outside of the promise!
@@ -1482,7 +1682,6 @@ angular.module('umbraco.services')
          * @param {String} options.animation animation csss class, by default set to "fade"
          * @param {String} options.modalClass modal css class, by default "umb-modal"
          * @param {Bool} options.show show the modal instantly
-         * @param {Object} options.scope scope to attach the modal to, by default rootScope.new()
          * @param {Bool} options.iframe load template in an iframe, only needed for serverside templates
          * @param {Int} options.width set a width on the modal, only needed for iframes
          * @param {Bool} options.inline strips the modal from any animation and wrappers, used when you want to inject a dialog into an existing container
@@ -1529,7 +1728,6 @@ angular.module('umbraco.services')
          * @description
          * Opens a media picker in a modal, the callback returns an array of selected media items
          * @param {Object} options mediapicker dialog options object
-         * @param {$scope} options.scope dialog scope
          * @param {Boolean} options.onlyImages Only display files that have an image file-extension
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
@@ -1549,15 +1747,16 @@ angular.module('umbraco.services')
          * @description
          * Opens a content picker tree in a modal, the callback returns an array of selected documents
          * @param {Object} options content picker dialog options object
-         * @param {$scope} options.scope dialog scope
-         * @param {$scope} options.multipicker should the picker return one or multiple items
+         * @param {Boolean} options.multipicker should the picker return one or multiple items
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
          */
-        contentPicker: function (options) {
-            options.template = 'views/common/dialogs/contentPicker.html';
-            options.show = true;
-            return openDialog(options);
+        contentPicker: function (options) {           
+
+            options.treeAlias = "content";
+            options.section = "content";
+
+            return this.treePicker(options);
         },
 
         /**
@@ -1568,7 +1767,6 @@ angular.module('umbraco.services')
          * @description
          * Opens a link picker tree in a modal, the callback returns a single link
          * @param {Object} options content picker dialog options object
-         * @param {$scope} options.scope dialog scope
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
          */
@@ -1586,7 +1784,6 @@ angular.module('umbraco.services')
          * @description
          * Opens a mcaro picker in a modal, the callback returns a object representing the macro and it's parameters
          * @param {Object} options macropicker dialog options object
-         * @param {$scope} options.scope dialog scope
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
          */
@@ -1605,15 +1802,16 @@ angular.module('umbraco.services')
          * @description
          * Opens a member picker in a modal, the callback returns a object representing the selected member
          * @param {Object} options member picker dialog options object
-         * @param {$scope} options.scope dialog scope
-         * @param {$scope} options.multiPicker should the tree pick one or multiple members before returning
+         * @param {Boolean} options.multiPicker should the tree pick one or multiple members before returning
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
          */
         memberPicker: function (options) {
-            options.template = 'views/common/dialogs/memberPicker.html';
-            options.show = true;
-            return openDialog(options);
+            
+            options.treeAlias = "member";
+            options.section = "member";
+
+            return this.treePicker(options);
         },
 
         /**
@@ -1624,8 +1822,7 @@ angular.module('umbraco.services')
          * @description
          * Opens a member group picker in a modal, the callback returns a object representing the selected member
          * @param {Object} options member group picker dialog options object
-         * @param {$scope} options.scope dialog scope
-         * @param {$scope} options.multiPicker should the tree pick one or multiple members before returning
+         * @param {Boolean} options.multiPicker should the tree pick one or multiple members before returning
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
          */
@@ -1643,7 +1840,6 @@ angular.module('umbraco.services')
          * @description
          * Opens a icon picker in a modal, the callback returns a object representing the selected icon
          * @param {Object} options iconpicker dialog options object
-         * @param {$scope} options.scope dialog scope
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
          */
@@ -1661,10 +1857,9 @@ angular.module('umbraco.services')
          * @description
          * Opens a tree picker in a modal, the callback returns a object representing the selected tree item
          * @param {Object} options iconpicker dialog options object
-         * @param {$scope} options.scope dialog scope
-         * @param {$scope} options.section tree section to display
-         * @param {$scope} options.treeAlias specific tree to display
-         * @param {$scope} options.multiPicker should the tree pick one or multiple items before returning
+         * @param {String} options.section tree section to display
+         * @param {String} options.treeAlias specific tree to display
+         * @param {Boolean} options.multiPicker should the tree pick one or multiple items before returning
          * @param {Function} options.callback callback function
          * @returns {Object} modal object
          */
@@ -1682,12 +1877,12 @@ angular.module('umbraco.services')
          * @description
          * Opens a dialog with a chosen property editor in, a value can be passed to the modal, and this value is returned in the callback
          * @param {Object} options mediapicker dialog options object
-         * @param {$scope} options.scope dialog scope
          * @param {Function} options.callback callback function
          * @param {String} editor editor to use to edit a given value and return on callback
          * @param {Object} value value sent to the property editor
          * @returns {Object} modal object
          */
+        //TODO: Wtf does this do? I don't think anything!
         propertyDialog: function (options) {
             options.template = 'views/common/dialogs/property.html';
             options.show = true;
@@ -2066,6 +2261,20 @@ function formHelper(angularHelper, serverValidationManager, $timeout, notificati
     };
 }
 angular.module('umbraco.services').factory('formHelper', formHelper);
+angular.module('umbraco.services')
+	.factory('gridService', function ($http, $q){
+
+		var configPath = "../config/grid.editors.config.js";
+        var service = {
+			getGridEditors: function () {
+				return $http.get(configPath);
+			}
+		};
+
+		return service;
+
+	});
+
 angular.module('umbraco.services')
 	.factory('helpService', function ($http, $q){
 		var helpTopics = {};
@@ -2866,18 +3075,19 @@ angular.module('umbraco.services')
 
             //helper to tokenize and compile a localization string
             tokenize: function(value,scope) {
-                    if(value){
-                        var localizer = value.split(':');
-                        var retval = {tokens: undefined, key: localizer[0].substring(0)};
-                        if(localizer.length > 1){
-                            retval.tokens = localizer[1].split(',');
-                            for (var x = 0; x < retval.tokens.length; x++) {
-                                retval.tokens[x] = scope.$eval(retval.tokens[x]);
-                            }
+                if (value) {
+                    var localizer = value.split(':');
+                    var retval = { tokens: undefined, key: localizer[0].substring(0) };
+                    if (localizer.length > 1) {
+                        retval.tokens = localizer[1].split(',');
+                        for (var x = 0; x < retval.tokens.length; x++) {
+                            retval.tokens[x] = scope.$eval(retval.tokens[x]);
                         }
-
-                        return retval;
                     }
+
+                    return retval;
+                }
+                return value;
             },
 
             // checks the dictionary for a localized resource string
@@ -3908,7 +4118,6 @@ function navigationService($rootScope, $routeParams, $log, $location, $q, $timeo
                             }
 
                             var dialog = self.showDialog({
-                                scope: args.scope,
                                 node: args.node,
                                 action: found,
                                 section: appState.getSectionState("currentSection")
@@ -4077,12 +4286,11 @@ function navigationService($rootScope, $routeParams, $log, $location, $q, $timeo
          * into #dialog div.umb-panel-body
          * the path to the dialog view is determined by: 
          * "views/" + current tree + "/" + action alias + ".html"
-         * The dialog controller will get passed a scope object that is created here. This scope
-         * object may be injected as part of the args object, if one is not found then a new scope
-         * is created. Regardless of whether a scope is created or re-used, a few properties and methods 
-         * will be added to it so that they can be used in any dialog controller:
+         * The dialog controller will get passed a scope object that is created here with the properties:
          *  scope.currentNode = the selected tree node
          *  scope.currentAction = the selected menu item
+         *  so that the dialog controllers can use these properties
+         * 
          * @param {Object} args arguments passed to the function
          * @param {Scope} args.scope current scope passed to the dialog
          * @param {Object} args.action the clicked action containing `name` and `alias`
@@ -4106,8 +4314,11 @@ function navigationService($rootScope, $routeParams, $log, $location, $q, $timeo
 
             setMode("dialog");
 
-            //set up the scope object and assign properties
-            var dialogScope = args.scope || $rootScope.$new();
+            //NOTE: Set up the scope object and assign properties, this is legacy functionality but we have to live with it now.
+            // we should be passing in currentNode and currentAction using 'dialogData' for the dialog, not attaching it to a scope.
+            // This scope instance will be destroyed by the dialog so it cannot be a scope that exists outside of the dialog.
+            // If a scope instance has been passed in, we'll have to create a child scope of it, otherwise a new root scope.
+            var dialogScope = args.scope ? args.scope.$new() : $rootScope.$new();
             dialogScope.currentNode = args.node;
             dialogScope.currentAction = args.action;
 
@@ -4165,14 +4376,19 @@ function navigationService($rootScope, $routeParams, $log, $location, $q, $timeo
             var dialog = dialogService.open(
                 {
                     container: $("#dialog div.umb-modalcolumn-body"),
+                    //The ONLY reason we're passing in scope to the dialogService (which is legacy functionality) is 
+                    // for backwards compatibility since many dialogs require $scope.currentNode or $scope.currentAction
+                    // to exist
                     scope: dialogScope,
-                    currentNode: args.node,
-                    currentAction: args.action,
                     inline: true,
                     show: true,
                     iframe: iframe,
                     modalClass: "umb-dialog",
-                    template: templateUrl
+                    template: templateUrl,
+
+                    //These will show up on the dialog controller's $scope under dialogOptions
+                    currentNode: args.node,
+                    currentAction: args.action,
                 });
 
             //save the currently assigned dialog so it can be removed before a new one is created
@@ -4565,7 +4781,7 @@ angular.module('umbraco.services')
     function configureMemberResult(member) {
         member.menuUrl = umbRequestHelper.getApiUrl("memberTreeBaseUrl", "GetMenu", [{ id: member.id }, { application: 'member' }]);
         member.editorPath = "member/member/edit/" + (member.key ? member.key : member.id);
-        member.metaData = { treeAlias: "member" };
+        angular.extend(member.metaData, { treeAlias: "member" });
         member.subTitle = member.metaData.Email;
     }
     
@@ -4573,13 +4789,13 @@ angular.module('umbraco.services')
     {
         media.menuUrl = umbRequestHelper.getApiUrl("mediaTreeBaseUrl", "GetMenu", [{ id: media.id }, { application: 'media' }]);
         media.editorPath = "media/media/edit/" + media.id;
-        media.metaData = { treeAlias: "media" };
+        angular.extend(media.metaData, { treeAlias: "media" });
     }
     
     function configureContentResult(content) {
         content.menuUrl = umbRequestHelper.getApiUrl("contentTreeBaseUrl", "GetMenu", [{ id: content.id }, { application: 'content' }]);
         content.editorPath = "content/content/edit/" + content.id;
-        content.metaData = { treeAlias: "content" };
+        angular.extend(content.metaData, { treeAlias: "content" });
         content.subTitle = content.metaData.Url;        
     }
 
@@ -4602,7 +4818,7 @@ angular.module('umbraco.services')
                 throw "args.term is required";
             }
 
-            return entityResource.search(args.term, "Member").then(function (data) {
+            return entityResource.search(args.term, "Member", args.searchFrom).then(function (data) {
                 _.each(data, function(item) {
                     configureMemberResult(item);
                 });         
@@ -4627,7 +4843,7 @@ angular.module('umbraco.services')
                 throw "args.term is required";
             }
 
-            return entityResource.search(args.term, "Document").then(function (data) {
+            return entityResource.search(args.term, "Document", args.searchFrom).then(function (data) {
                 _.each(data, function (item) {
                     configureContentResult(item);
                 });
@@ -4652,7 +4868,7 @@ angular.module('umbraco.services')
                 throw "args.term is required";
             }
 
-            return entityResource.search(args.term, "Media").then(function (data) {
+            return entityResource.search(args.term, "Media", args.searchFrom).then(function (data) {
                 _.each(data, function (item) {
                     configureMediaResult(item);
                 });
@@ -4704,8 +4920,10 @@ angular.module('umbraco.services')
             
         },
 
+        //TODO: This doesn't do anything!
         setCurrent: function(sectionAlias) {
-            currentSection = sectionAlias;
+
+            var currentSection = sectionAlias;
         }
     };
 });
@@ -5100,7 +5318,7 @@ angular.module('umbraco.services').factory('serverValidationManager', serverVali
  * @description
  * A service containing all logic for all of the Umbraco TinyMCE plugins
  */
-function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macroResource, macroService, $routeParams, umbRequestHelper, angularHelper) {
+function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macroResource, macroService, $routeParams, umbRequestHelper, angularHelper, userService) {
     return {
 
         /**
@@ -5117,7 +5335,7 @@ function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macro
                   $http.get(
                       umbRequestHelper.getApiUrl(
                           "rteApiBaseUrl",
-                          "GetConfiguration")),
+                          "GetConfiguration"), { cache: true }),
                   'Failed to retrieve tinymce configuration');
         },
 
@@ -5134,7 +5352,8 @@ function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macro
                var cfg = {};
                        cfg.toolbar = ["code", "bold", "italic", "styleselect","alignleft", "aligncenter", "alignright", "bullist","numlist", "outdent", "indent", "link", "image", "umbmediapicker", "umbembeddialog", "umbmacro"];
                        cfg.stylesheets = [];
-                       cfg.dimensions = {height: 500};
+                       cfg.dimensions = { height: 500 };
+                       cfg.maxImageSize = 500;
                 return cfg;
         },
 
@@ -5155,7 +5374,7 @@ function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macro
                 tooltip: 'Embed',
                 onclick: function () {
                     dialogService.embedDialog({
-                        scope: $scope, callback: function (data) {
+                        callback: function (data) {
                             editor.insertContent(data);
                         }
                     });
@@ -5174,7 +5393,7 @@ function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macro
         * @param {Object} editor the TinyMCE editor instance        
         * @param {Object} $scope the current controller scope
         */
-        createMediaPicker: function (editor, $scope) {
+        createMediaPicker: function (editor) {
             editor.addButton('umbmediapicker', {
                 icon: 'custom icon-picture',
                 tooltip: 'Media Picker',
@@ -5187,93 +5406,56 @@ function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macro
                     if(selectedElm.nodeName === 'IMG'){
                         var img = $(selectedElm);
                         currentTarget = {
-                            name: img.attr("alt"),
+                            altText: img.attr("alt"),
                             url: img.attr("src"),
                             id: img.attr("rel")
                         };
                     }
 
-                    dialogService.mediaPicker({
-                        currentTarget: currentTarget,
-                        onlyImages: true,
-                        showDetails: true,
-                        scope: $scope, callback: function (img) {
+                    userService.getCurrentUser().then(function(userData) {
+                        dialogService.mediaPicker({
+                            currentTarget: currentTarget,
+                            onlyImages: true,
+                            showDetails: true,
+                            startNodeId: userData.startMediaId,
+                            callback: function (img) {
 
-                            if (img) {
-                                
-                                var data = {
-                                    alt: img.name,
-                                    src: (img.url) ? img.url : "nothing.jpg",
-                                    rel: img.id,
-                                    id: '__mcenew'
-                                };
+                                if (img) {
 
-                                editor.insertContent(editor.dom.createHTML('img', data));
+                                    var data = {
+                                        alt: img.altText,
+                                        src: (img.url) ? img.url : "nothing.jpg",
+                                        rel: img.id,
+                                        id: '__mcenew'
+                                    };
 
-                                $timeout(function () {
-                                    var imgElm = editor.dom.get('__mcenew');
-                                    var size = editor.dom.getSize(imgElm);
+                                    editor.insertContent(editor.dom.createHTML('img', data));
 
-                                    var newSize = imageHelper.scaleToMaxSize(500, size.w, size.h);
+                                    $timeout(function () {
+                                        var imgElm = editor.dom.get('__mcenew');
+                                        var size = editor.dom.getSize(imgElm);
 
-                                    var s = "width: " + newSize.width + "px; height:" + newSize.height + "px;";
-                                    editor.dom.setAttrib(imgElm, 'style', s);
-                                    editor.dom.setAttrib(imgElm, 'id', null);
+                                        if (editor.settings.maxImageSize && editor.settings.maxImageSize !== 0) {
+                                            var newSize = imageHelper.scaleToMaxSize(editor.settings.maxImageSize, size.w, size.h);
 
-                                    if(img.url){
-                                        var src = img.url + "?width=" + newSize.width + "&height=" + newSize.height;
-                                        editor.dom.setAttrib(imgElm, 'data-mce-src', src);
-                                    }
-                                 
-                                }, 500);
+                                            var s = "width: " + newSize.width + "px; height:" + newSize.height + "px;";
+                                            editor.dom.setAttrib(imgElm, 'style', s);
+                                            editor.dom.setAttrib(imgElm, 'id', null);
+
+                                            if (img.url) {
+                                                var src = img.url + "?width=" + newSize.width + "&height=" + newSize.height;
+                                                editor.dom.setAttrib(imgElm, 'data-mce-src', src);
+                                            }
+                                        }
+                                    }, 500);
+                                }
                             }
-                        }
+                        });
                     });
+
+                    
                 }
             });
-        },
-
-        /**
-        * @ngdoc method
-        * @name umbraco.services.tinyMceService#createLinkPicker
-        * @methodOf umbraco.services.tinyMceService
-        *
-        * @description
-        * Creates the umbrco insert link tinymce plugin
-        *
-        * @param {Object} editor the TinyMCE editor instance        
-        * @param {Object} $scope the current controller scope
-        */
-        createLinkPicker: function (editor, $scope) {
-
-            /*
-            editor.addButton('link', {
-                icon: 'custom icon-link',
-                tooltip: 'Link Picker',
-                onclick: function () {
-                    dialogService.linkPicker({
-                        scope: $scope, callback: function (link) {
-                            if (link) {
-                                var data = {
-                                    title: "Some description",
-                                    href: "",
-                                    id: '__mcenew'
-                                };
-
-                                editor.execCommand("mceInsertLink", false, {
-                                                href: "wat",
-                                                title: "muh",
-                                                target: null,
-                                                "class": null
-                                            });
-
-
-                                //editor.insertContent(editor.dom.createHTML('a', data));
-                           }
-                        }
-                    });
-                }
-            });*/
         },
 
         /**
@@ -5590,7 +5772,6 @@ function tinyMceService(dialogService, $log, imageHelper, $http, $timeout, macro
                     }
 
                     dialogService.macroPicker({
-                        scope: $scope,
                         dialogData : dialogData,
                         callback: function(data) {
 
@@ -5879,7 +6060,7 @@ function treeService($q, treeResource, iconHelper, notificationsService, eventsS
                     eventsService.emit("treeService.treeNodeLoadError", {error: reason } );
 
                     //stop show the loading indicator  
-                    node.loading = false;
+                    args.node.loading = false;
 
                     //tell notications about the error
                     notificationsService.error(reason);
@@ -5900,6 +6081,10 @@ function treeService($q, treeResource, iconHelper, notificationsService, eventsS
          * @param {object} treeNode the node to remove
          */
         removeNode: function(treeNode) {
+            if (!angular.isFunction(treeNode.parent)) {
+                return;
+            }
+
             if (treeNode.parent() == null) {
                 throw "Cannot remove a node that doesn't have a parent";
             }
@@ -5939,7 +6124,7 @@ function treeService($q, treeResource, iconHelper, notificationsService, eventsS
                 return null;
             }
             var found = _.find(treeNode.children, function (child) {
-                return String(child.id) === String(id);
+                return String(child.id).toLowerCase() === String(id).toLowerCase();
             });
             return found === undefined ? null : found;
         },
@@ -6294,7 +6479,8 @@ function treeService($q, treeResource, iconHelper, notificationsService, eventsS
                 throw "Path must be an array";
             }
             if (args.path.length < 1) {
-                throw "args.path must contain at least one id";
+                //if there is no path, make -1 the path, and that should sync the tree root
+                args.path.push("-1");
             }
 
             var deferred = $q.defer();
@@ -6309,7 +6495,7 @@ function treeService($q, treeResource, iconHelper, notificationsService, eventsS
             //of the path is the root node, otherwise we'll search it's children.
             var currPathIndex = 0;
             //if the first id is the root node and there's only one... then consider it synced
-            if (String(args.path[currPathIndex]) === String(args.node.id)) {
+            if (String(args.path[currPathIndex]).toLowerCase() === String(args.node.id).toLowerCase()) {
                 if (args.path.length === 1) {
                     //return the root
                     deferred.resolve(root);
@@ -6413,7 +6599,6 @@ function umbRequestHelper($http, $q, umbDataFormatter, angularHelper, dialogServ
          * @param {Array} queryStrings An array of key/value pairs
          */
         dictionaryToQueryString: function (queryStrings) {
-
             
             if (angular.isArray(queryStrings)) {
                 return _.map(queryStrings, function (item) {
@@ -6430,15 +6615,13 @@ function umbRequestHelper($http, $q, umbDataFormatter, angularHelper, dialogServ
                     return encodeURIComponent(key) + "=" + encodeURIComponent(val);
                 }).join("&");
             }
+            else if (angular.isObject(queryStrings)) {
 
-            /*
-            //if we have a simple object, we can simply map with $.param
-            //but with the current structure we cant since an array is an object and an object is an array
-            if(angular.isObject(queryStrings)){
-                return decodeURIComponent($.param(queryStrings)); 
-            }*/
-
-            throw "The queryString parameter is not an array of key value pairs";
+                //this allows for a normal object to be passed in (ie. a dictionary)
+                return decodeURIComponent($.param(queryStrings));
+            }
+            
+            throw "The queryString parameter is not an array or object of key value pairs";
         },
 
         /**
@@ -6717,6 +6900,10 @@ angular.module('umbraco.services')
         function openLoginDialog(isTimedOut) {
             if (!loginDialog) {
                 loginDialog = dialogService.open({
+
+                    //very special flag which means that global events cannot close this dialog
+                    manualClose: true,
+
                     template: 'views/common/dialogs/login.html',
                     modalClass: "login-overlay",
                     animation: "slide",
@@ -6929,13 +7116,23 @@ angular.module('umbraco.services')
 
                             var result = { user: data, authenticated: true, lastUserId: lastUserId };
 
+                            //TODO: This is a mega backwards compatibility hack... These variables SHOULD NOT exist in the server variables
+                            // since they are not supposed to be dynamic but I accidentally added them there in 7.1.5 IIRC so some people might
+                            // now be relying on this :(
+                            if (Umbraco && Umbraco.Sys && Umbraco.Sys.ServerVariables) {
+                                Umbraco.Sys.ServerVariables["security"] = {
+                                    startContentId: data.startContentId,
+                                    startMediaId: data.startMediaId
+                                };
+                            }
+
                             if (args && args.broadcastEvent) {
                                 //broadcast a global event, will inform listening controllers to load in the user specific data
                                 eventsService.emit("app.authenticated", result);
                             }
 
                             setCurrentUser(data);
-                            currentUser.avatar = 'http://www.gravatar.com/avatar/' + data.emailHash + '?s=40&d=404';
+                            currentUser.avatar = '//www.gravatar.com/avatar/' + data.emailHash + '?s=40&d=404';
                             deferred.resolve(currentUser);
                         });
 
@@ -6954,6 +7151,7 @@ angular.module('umbraco.services')
         };
 
     });
+
 /*Contains multiple services for various helper tasks */
 
 function packageHelper(assetsService, treeService, eventsService, $templateCache) {
@@ -7054,7 +7252,7 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
             //this gets the image with the smallest height which equals the maximum we can scale up for this image block
             var maxScaleableHeight = this.getMaxScaleableHeight(idealImages, maxRowHeight);
             //if the max scale height is smaller than the min display height, we'll use the min display height
-            targetHeight = targetHeight ? targetHeight : Math.max(maxScaleableHeight, minDisplayHeight);
+            targetHeight =  targetHeight !== undefined ? targetHeight : Math.max(maxScaleableHeight, minDisplayHeight);
             
             var attemptedRowHeight = this.performGetRowHeight(idealImages, targetRowWidth, minDisplayHeight, targetHeight);
 
@@ -7065,7 +7263,8 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
                 if (attemptedRowHeight < minDisplayHeight) {
 
                     if (idealImages.length > 1) {
-                        //we'll generate a new targetHeight that is halfway between the max and the current and recurse, passing in a new targetHeight
+                        
+                        //we'll generate a new targetHeight that is halfway between the max and the current and recurse, passing in a new targetHeight                        
                         targetHeight += Math.floor((maxRowHeight - targetHeight) / 2);
                         return this.getRowHeightForImages(imgs, maxRowHeight, minDisplayHeight, maxRowWidth, idealImgPerRow - 1, margin, targetHeight);
                     }
@@ -7091,7 +7290,7 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
             }
             else if (idealImages.length === 1) {
                 //this will occur when we only have one image remaining in the row to process but it's not really going to fit ideally
-                // in the row so we'll just return the minDisplayHeight and it will just get centered on the row
+                // in the row. 
                 return { height: minDisplayHeight, imgCount: 1 };
             }
             else if (idealImages.length === idealImgPerRow && targetHeight < maxRowHeight) {
@@ -7112,7 +7311,19 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
                 //Ok, we couldn't actually scale it up with the ideal row count we'll just recurse with a lesser image count.
                 return this.getRowHeightForImages(imgs, maxRowHeight, minDisplayHeight, maxRowWidth, idealImgPerRow - 1, margin);
             }
+            else if (targetHeight === maxRowHeight) {
+
+                //This is going to happen when:
+                // * We can fit a list of images in a row, but they come up too short (based on minDisplayHeight)
+                // * Then we'll try to remove an image, but when we try to scale to fit, the width comes up too narrow but the images are already at their
+                //      maximum height (maxRowHeight)
+                // * So we're stuck, we cannot precicely fit the current list of images, so we'll render a row that will be max height but won't be wide enough
+                //      which is better than rendering a row that is shorter than the minimum since that could be quite small.
+
+                return { height: targetHeight, imgCount: idealImages.length };
+            }
             else {
+
                 //we have additional images so we'll recurse and add 1 to the idealImgPerRow until it fits
                 return this.getRowHeightForImages(imgs, maxRowHeight, minDisplayHeight, maxRowWidth, idealImgPerRow + 1, margin);
             }
@@ -7134,9 +7345,14 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
                 
                 return newHeight;
             }
-
-            //if it's not successful, return false
-            return null;
+            else if (idealImages.length === 1 && (currRowWidth <= targetRowWidth) && !idealImages[0].isFolder) {
+                //if there is only one image, then return the target height
+                return targetHeight;
+            }
+            else {
+                //if it's not successful, return false
+                return null;
+            }
         },
 
         /** builds an image grid row */
@@ -7148,31 +7364,29 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
             var targetWidth = this.getTargetWidth(imageRowHeight.imgCount, maxRowWidth, margin);
 
             var sizes = [];
-            for (var i = 0; i < imgs.length; i++) {
+            //loop through the images we know fit into the height
+            for (var i = 0; i < imageRowHeight.imgCount; i++) {
                 //get the lower width to ensure it always fits
                 var scaledWidth = Math.floor(this.getScaledWidth(imgs[i], imageRowHeight.height));
-
-                //in this case, a single image will not fit into the row so we need to crop/center
-                // width the full width and the min display height
-                if (imageRowHeight.imgCount === 1) {
-                    sizes.push({
-                        width: targetWidth,
-                        //ensure that the height is rounded
-                        height: Math.round(minDisplayHeight)
-                    });
-                    row.images.push(imgs[i]);
-                    break;
-                }
                 
                 if (currRowWidth + scaledWidth <= targetWidth) {
                     currRowWidth += scaledWidth;                    
                     sizes.push({
-                        width: scaledWidth,
+                        width:scaledWidth,
                         //ensure that the height is rounded
                         height: Math.round(imageRowHeight.height)
                     });
                     row.images.push(imgs[i]);
-                }                
+                }
+                else if (imageRowHeight.imgCount === 1 && row.images.length === 0) {
+                    //the image is simply too wide, we'll crop/center it
+                    sizes.push({
+                        width: maxRowWidth,
+                        //ensure that the height is rounded
+                        height: Math.round(imageRowHeight.height)
+                    });
+                    row.images.push(imgs[i]);
+                }
                 else {
                     //the max width has been reached
                     break;
@@ -7189,8 +7403,11 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
                 this.setImageStyle(row.images[j], sizes[j].width, sizes[j].height, margin, bottomMargin);
             }
 
-            ////set the row style
-            //row.style = { "width": maxRowWidth + "px" };
+            if (row.images.length === 1) {
+                //if there's only one image on the row, set the container to max width
+                row.images[0].style.width = maxRowWidth + "px"; 
+            }
+            
 
             return row;
         },
@@ -7237,6 +7454,11 @@ function umbPhotoFolderHelper($compile, $log, $timeout, $filter, imageHelper, me
                     imagesProcessed += row.images.length;
                 }
                 else {
+
+                    if (currImgs.length > 0) {
+                        throw "Could not fill grid with all images, images remaining: " + currImgs.length;
+                    }
+
                     //if there was nothing processed, exit
                     break;
                 }

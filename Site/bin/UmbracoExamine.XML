@@ -256,6 +256,37 @@
             via reflection because of the circular reference we have between Umbraco.Web and UmbracoExamine. 
             </summary>
         </member>
+        <member name="M:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.FileExists(System.String)">
+            <summary>Returns true if a file with the given name exists. </summary>
+        </member>
+        <member name="M:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.FileModified(System.String)">
+            <summary>Returns the time the named file was last modified. </summary>
+        </member>
+        <member name="M:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.TouchFile(System.String)">
+            <summary>Set the modified time of an existing file to now. </summary>
+        </member>
+        <member name="M:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.DeleteFile(System.String)">
+            <summary>Removes an existing file in the directory. </summary>
+        </member>
+        <member name="M:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.FileLength(System.String)">
+            <summary>Returns the length of a file in the directory. </summary>
+        </member>
+        <member name="M:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.CreateOutput(System.String)">
+            <summary>
+            Creates a new, empty file in the directory with the given name.
+            Returns a stream writing this file. 
+            </summary>
+        </member>
+        <member name="M:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.OpenInput(System.String)">
+            <summary>
+            Returns a stream reading an existing file.
+            </summary>
+        </member>
+        <member name="P:UmbracoExamine.LocalStorage.LocalTempStorageDirectory.Enabled">
+            <summary>
+            If initialization fails, it will be disabled and then this will just wrap the 'real directory'
+            </summary>
+        </member>
         <member name="T:UmbracoExamine.UmbracoMemberIndexer">
             <summary>
             
@@ -289,6 +320,7 @@
             <param name="indexPath"></param>
             <param name="dataService"></param>
             <param name="analyzer"></param>
+            <param name="async"></param>
         </member>
         <member name="M:UmbracoExamine.UmbracoContentIndexer.#ctor(Examine.IIndexCriteria,Lucene.Net.Store.Directory,UmbracoExamine.DataServices.IDataService,Lucene.Net.Analysis.Analyzer,System.Boolean)">
             <summary>
@@ -297,6 +329,20 @@
             <param name="indexerData"></param>
             <param name="luceneDirectory"></param>
             <param name="dataService"></param>
+            <param name="analyzer"></param>
+            <param name="async"></param>
+        </member>
+        <member name="M:UmbracoExamine.UmbracoContentIndexer.#ctor(Examine.IIndexCriteria,Lucene.Net.Store.Directory,UmbracoExamine.DataServices.IDataService,Umbraco.Core.Services.IContentService,Umbraco.Core.Services.IMediaService,Umbraco.Core.Services.IDataTypeService,Umbraco.Core.Services.IUserService,Lucene.Net.Analysis.Analyzer,System.Boolean)">
+            <summary>
+            Constructor to allow for creating an indexer at runtime
+            </summary>
+            <param name="indexerData"></param>
+            <param name="luceneDirectory"></param>
+            <param name="dataService"></param>
+            <param name="contentService"></param>
+            <param name="mediaService"></param>
+            <param name="dataTypeService"></param>
+            <param name="userService"></param>
             <param name="analyzer"></param>
             <param name="async"></param>
         </member>
@@ -428,12 +474,30 @@
             <param name="dataService"></param>
             <param name="analyzer"></param>
         </member>
+        <member name="M:UmbracoExamine.UmbracoMemberIndexer.#ctor(Examine.IIndexCriteria,System.IO.DirectoryInfo,UmbracoExamine.DataServices.IDataService,Umbraco.Core.Services.IDataTypeService,Umbraco.Core.Services.IMemberService,Lucene.Net.Analysis.Analyzer,System.Boolean)">
+            <summary>
+            Constructor to allow for creating an indexer at runtime
+            </summary>
+            <param name="indexerData"></param>
+            <param name="indexPath"></param>
+            <param name="dataService"></param>
+            <param name="dataTypeService"></param>
+            <param name="memberService"></param>
+            <param name="analyzer"></param>
+            <param name="async"></param>
+        </member>
         <member name="M:UmbracoExamine.UmbracoMemberIndexer.GetIndexerData(Examine.LuceneEngine.Config.IndexSet)">
             <summary>
             Ensures that the'_searchEmail' is added to the user fields so that it is indexed - without having to modify the config
             </summary>
             <param name="indexSet"></param>
             <returns></returns>
+        </member>
+        <member name="M:UmbracoExamine.UmbracoMemberIndexer.PerformIndexAll(System.String)">
+            <summary>
+            Reindex all members
+            </summary>
+            <param name="type"></param>
         </member>
         <member name="M:UmbracoExamine.UmbracoMemberIndexer.OnGatheringNodeData(Examine.IndexingNodeDataEventArgs)">
             <summary>

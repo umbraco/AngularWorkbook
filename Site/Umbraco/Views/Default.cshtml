@@ -1,4 +1,5 @@
-﻿@using System.Web.Mvc.Html
+﻿@using System.Net.Http
+@using System.Web.Mvc.Html
 @using Umbraco.Core
 @using ClientDependency.Core
 @using ClientDependency.Core.Mvc
@@ -18,6 +19,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
     <title ng-bind="$root.locationTitle">Umbraco</title>
     
@@ -26,9 +28,10 @@
     @Html.RenderCssHere(
         new BasicPath("Umbraco", IOHelper.ResolveUrl(SystemDirectories.Umbraco)),
         new BasicPath("UmbracoClient", IOHelper.ResolveUrl(SystemDirectories.UmbracoClient)))
+    
 
 </head>
-<body ng-class="{touch:touchDevice}" ng-controller="Umbraco.MainController" id="umbracoMainPageBody">
+<body ng-class="{touch:touchDevice,emptySection:emptySection}" ng-controller="Umbraco.MainController" id="umbracoMainPageBody">
     <div ng-hide="!authenticated" ng-cloak id="mainwrapper"  id="mainwrapper" class="clearfix" ng-click="closeDialogs($event)">
 
         <umb-navigation></umb-navigation>
@@ -61,6 +64,24 @@
     @*And finally we can load in our angular app*@
     <script type="text/javascript" src="lib/lazyload/lazyload.min.js"></script>
     <script type="text/javascript" src="@Url.GetUrlWithCacheBust("Application", "BackOffice")"></script>
+    
+    @{
+        var isDebug = false;
+        if (Request.RawUrl.IndexOf('?') >= 0)
+        {
+            var parsed = HttpUtility.ParseQueryString(Request.RawUrl.Split('?')[1]);
+            var attempt = parsed["umbDebug"].TryConvertTo<bool>();
+            if (attempt && attempt.Result)
+            {
+                isDebug = true;
+            } 
+        }
+        
+    }
+    @if (isDebug)
+    {
+        @Html.RenderProfiler()
+    }
 
 </body>
 </html>

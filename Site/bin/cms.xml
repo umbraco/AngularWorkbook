@@ -26,7 +26,7 @@
             </summary>
             <remarks>
             TODO: this shouldn't be needed... we should restart the app pool when a package is installed!
-            </remarks>		
+            </remarks>
         </member>
         <member name="M:umbraco.BusinessLogic.Actions.Action.ReturnJavascript(System.String)">
             <summary>
@@ -790,6 +790,14 @@
                Looks up a localized string similar to &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
             &lt;packages&gt;&lt;/packages&gt;.
              </summary>
+        </member>
+        <member name="M:umbraco.cms.businesslogic.packager.Package.#ctor(System.Int32)">
+            <summary>
+            Initialize package install status object by specifying the internal id of the installation. 
+            The id is specific to the local umbraco installation and cannot be used to identify the package in general. 
+            Use the Package(Guid) constructor to check whether a package has been installed
+            </summary>
+            <param name="Id">The internal id.</param>
         </member>
         <member name="T:umbraco.cms.businesslogic.packager.standardPackageActions.addApplication">
             <summary>
@@ -4123,6 +4131,11 @@
             The delete event handler
             </summary>
         </member>
+        <member name="M:umbraco.cms.businesslogic.packager.repositories.Repository.DisposeResources">
+            <summary>
+            Handles the disposal of resources. Derived from abstract class <see cref="T:Umbraco.Core.DisposableObject"/> which handles common required locking logic.
+            </summary>
+        </member>
         <member name="T:umbraco.cms.businesslogic.packager.repositories.RepositoryWebservice">
             <remarks/>
         </member>
@@ -5437,7 +5450,7 @@
         </member>
         <member name="M:umbraco.cms.businesslogic.web.Document.SendToPublication(umbraco.BusinessLogic.User)">
             <summary>
-            Executes handlers and events for the Send To Publication action.
+            Saves and executes handlers and events for the Send To Publication action.
             </summary>
             <param name="u">The User</param>
         </member>

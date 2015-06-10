@@ -124,6 +124,43 @@
             To use, inhirite the ApplicationBase Class and add an empty constructor. 
             </summary>
         </member>
+        <member name="T:umbraco.BusinessLogic.ApplicationRegistrar">
+            <summary>
+            A startup handler for putting the app config in the config file based on attributes found
+            </summary>
+            /// <remarks>
+            TODO: This is really not a very ideal process but the code is found here because tree plugins are in the Web project or the legacy business logic project.
+            Moving forward we can put the base tree plugin classes in the core and then this can all just be taken care of normally within the service.
+            </remarks>
+        </member>
+        <member name="M:umbraco.BusinessLogic.ApplicationRegistrar.ConfigureMappings(AutoMapper.IConfiguration,Umbraco.Core.ApplicationContext)">
+            <summary>
+            Configure a few auto-mappings
+            </summary>
+            <param name="config"></param>
+            <param name="applicationContext"></param>
+        </member>
+        <member name="T:umbraco.BusinessLogic.ApplicationRegistrar.LazyEnumerableSections">
+            <summary>
+            This class is here so that we can provide lazy access to tree scanning for when it is needed
+            </summary>
+        </member>
+        <member name="M:umbraco.BusinessLogic.ApplicationRegistrar.LazyEnumerableSections.GetEnumerator">
+            <summary>
+            Returns an enumerator that iterates through the collection.
+            </summary>
+            <returns>
+            A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
+            </returns>
+        </member>
+        <member name="M:umbraco.BusinessLogic.ApplicationRegistrar.LazyEnumerableSections.System#Collections#IEnumerable#GetEnumerator">
+            <summary>
+            Returns an enumerator that iterates through a collection.
+            </summary>
+            <returns>
+            An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
+            </returns>
+        </member>
         <member name="T:umbraco.businesslogic.ApplicationStartupHandler">
             <summary>
             ApplicationStartupHandler provides an easy to use base class to install event handlers in umbraco.
@@ -851,6 +888,12 @@
             Gets the current user.
             </summary>
             <value>The current user.</value>
+        </member>
+        <member name="T:umbraco.BasePages.UmbracoEnsuredPage.WebformsPageTreeAuthorizeAttribute">
+            <summary>
+            Used to assign a webforms page's security to a specific tree which will in turn check to see
+            if the current user has access to the specified tree's registered section
+            </summary>
         </member>
         <member name="T:umbraco.businesslogic.Exceptions.UserAuthorizationException">
             <summary>
