@@ -25,7 +25,7 @@ myService.save = function(ingredient){
 
 Again, these simply call the serverside REST api, which are defined in the .cs files in app_code
 
-##Make the edit controller save and retrive
+##Make the edit controller save and retrieve
 First the retrieve part, where we use $routeParams to determine the state of the editor:
 
 ```javascript
