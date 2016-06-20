@@ -14,7 +14,7 @@ angular.module("umbraco").controller("Glass.EditorController", function(){
 We also need to tell the editor html view to actually load and use the controller we’ve setup, so modify the editors html to be like so: 
 
 ```html
-<div ng-controller="Glas.EditorController">
+<div ng-controller="Glass.EditorController">
     <input type="text" ng-model="model.value" />
 </div>
 ```
