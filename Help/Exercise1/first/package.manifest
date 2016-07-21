@@ -1,8 +1,8 @@
 {
 	propertyEditors:[
 	{
-		name: "My editor",
-		alias: "my.editor",
+		name: "Glass editor",
+		alias: "my.glass.editor",
 		editor:{
 			view: "~/app_plugins/first/editor.html"
 		}	
