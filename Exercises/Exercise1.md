@@ -2,7 +2,7 @@
 This exercise will result in a basic property editor, that will show you how to connect your editor with Umbraco on the serverside, and how to populate and sync data in the UI. 
 
 ##The manifest
-Create a new folder at /app_plugins/first/, inside this folder, create a new file and call it package.manifest.
+Create a new folder at /app_plugins/glass/, inside this folder, create a new file and call it package.manifest.
 
 This file is used to, among other things,register property editors. So we will add a bit of json to describe what we are adding:
 
@@ -14,7 +14,7 @@ This file is used to, among other things,register property editors. So we will a
 			name: "Glass editor",
 			alias: "my.glass.editor",
 			editor:{
-				view: "~/app_plugins/first/editor.html"
+				view: "~/app_plugins/glass/editor.html"
 			}	
 		}
 	]
@@ -24,7 +24,7 @@ This file is used to, among other things,register property editors. So we will a
 So we create a propertyEditors array, which we then add a single editor to. This editor has basic meta data like name, alias and most importantly, the path to the html that will show in the Ui when loaded. 
 
 ##Editing the view
-Let’s add that view, which is a .html file at `/app_plugins/first/editor.html`, then Open the editor.html file, and add nothing but:
+Let’s add that view, which is a .html file at `/app_plugins/glass/editor.html`, then Open the editor.html file, and add nothing but:
 
 ```html
 <input type="text" ng-model="model.value" /> 
