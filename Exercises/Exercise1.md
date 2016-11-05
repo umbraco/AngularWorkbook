@@ -2,7 +2,7 @@
 This exercise will result in a basic property editor, that will show you how to connect your editor with Umbraco on the serverside, and how to populate and sync data in the UI. 
 
 ##The manifest
-Create a new folder at /app_plugins/first/, inside this folder, create a new file and call it package.manifest.
+Create a new folder at /app_plugins/glass/, inside this folder, create a new file and call it package.manifest.
 
 This file is used to, among other things,register property editors. So we will add a bit of json to describe what we are adding:
 
